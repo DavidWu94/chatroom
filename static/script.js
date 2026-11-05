@@ -1,15 +1,11 @@
-/* ========= Mermaid 初始化 ========= */
 mermaid.initialize({startOnLoad:false});
 
-/* ===== 使用者暱稱 ===== */
 let username = sessionStorage.getItem('chat_username');
 if(!username){
   username = '使用者'+Math.floor(Math.random()*1000);
   sessionStorage.setItem('chat_username',username);
 }
 
-
-/* ===== 發訊息 ===== */
 $("#send-button").on("click", send);
 $("#message-input").on("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -18,20 +14,15 @@ $("#message-input").on("keydown", (e) => {
   }
 });
 
-
-/* ===== 清空訊息 ===== */
 $("#clear-btn").on("click", () => {
   if (confirm("確定要清空聊天？")) $("#chat-messages").empty();
 });
 
-
-/* ========= 滑到底部 ========= */
 function scrollBottom() {
   const m = document.getElementById("chat-messages");
   m.scrollTop = m.scrollHeight;
 }
 
-/* ===== Markdown / Mermaid / Highlight ===== */
 function format(txt) {
   txt = txt.trim();
   let html = marked.parse(txt);
@@ -54,7 +45,6 @@ function format(txt) {
   return html;
 }
 
-// ===== 執行 Highlight.js 與 Mermaid 渲染 =====
 function renderCode() {
   requestAnimationFrame(() => {
     document.querySelectorAll("pre code").forEach((b) => hljs.highlightElement(b));
@@ -62,7 +52,6 @@ function renderCode() {
   });
 }
 
-// ===== 複製按鈕功能 =====
 function copyText(btn, encoded) {
   const text = decodeURIComponent(encoded);
   navigator.clipboard
@@ -87,7 +76,6 @@ function addMessage(content, isMe, sender) {
   scrollBottom();
 }
 
-/* ===== 表情選單（ ===== */
 $(".emoji-btn").on("click", function () {
   const emojis = ["😊", "😂", "😍", "👍", "❤️", "😉", "🎉", "👋"];
   if ($(".emoji-menu").length) {
@@ -107,13 +95,10 @@ $(".emoji-btn").on("click", function () {
   });
 });
 
-/* ===== 連線 ===== */
-const socket = io(); // 連到同主機
+const socket = io();
 
-/* ===== 線上人數 ===== */
 socket.on("user_count", (d) => $("#online-count").text(d.count));
 
-/* ===== 更新連線狀態 ===== */
 function updateStatus(ok, msg = "已連線") {
   const el = $("#connection-status");
   if (ok) {
@@ -126,23 +111,19 @@ function updateStatus(ok, msg = "已連線") {
 
 socket.on("connect", () => {
   updateStatus(true);
-  /* ===== 初次加入（重新連線時也重新加入） ===== */
   socket.emit("join", { username });
 });
 socket.on("disconnect", () => updateStatus(false, "連線中斷"));
 socket.on("connect_error", () => updateStatus(false, "連線錯誤"));
 
-/* ===== 工具函式 ===== */
 function addSystem(text) {
   $("#chat-messages").append(`<div class="connection-status">${text}</div>`);
   scrollBottom();
 }
 
-/* ===== 系統事件 ===== */
 socket.on("user_joined", (d) => addSystem(`${d.username} 加入了聊天`));
 socket.on("user_left", (d) => addSystem(`${d.username} 離開了聊天`));
 
-/* ===== 傳送訊息 ===== */
 function send() {
   const txt = $("#message-input").val().trim();
   if (!txt) return;
@@ -155,12 +136,10 @@ function send() {
   scrollBottom();
 }
 
-/* ===== 聊天事件 ===== */
 socket.on("chat_message", (d) =>
   addMessage(d.content, d.username === username, d.username)
 );
 
-/* ===== 顯示對方輸入狀態 ===== */
 function showTyping(user) {
   if (user === username) return;
   const cls = "typing-" + user.replace(/\s+/g, "-");
@@ -179,10 +158,8 @@ function showTyping(user) {
   scrollBottom();
 }
 
-/* ===== Typing ===== */
 socket.on("typing", (d) => showTyping(d.username));
 
-/* ===== 輸入狀態 ===== */
 let typingTimer;
 $("#message-input").on("input", function () {
   this.style.height = "auto";
@@ -193,21 +170,19 @@ $("#message-input").on("input", function () {
   }
 });
 
-/* ===== 改暱稱 ===== */
-$("#change-name-btn").on("click", () => {          // 當使用者按下「改名稱」按鈕時觸發
-  const v = prompt("輸入新名稱：", username);      // 跳出輸入框，預設顯示目前使用者名稱
+$("#change-name-btn").on("click", () => {
+  const v = prompt("輸入新名稱：", username);
   const name = v ? v.trim() : "";
-  if (name && name !== username) {                 // 檢查：新名稱不能是空的或與舊名稱相同
-    socket.emit("change_username", {               // 將舊名稱與新名稱發送給伺服器
+  if (name && name !== username) {
+    socket.emit("change_username", {
       oldUsername: username,
       newUsername: name,
     });
-    username = name;                               // 更新本地端的使用者名稱變數
-    sessionStorage.setItem("chat_username", username); // 存到 sessionStorage（頁面重整後仍保留）
+    username = name;
+    sessionStorage.setItem("chat_username", username);
   }
 });
 
-// 監聽伺服器廣播事件，當有人更改名稱時執行
 socket.on("user_changed_name", (d) =>
-  addSystem(`${d.oldUsername} 更名為 ${d.newUsername}`) // 在系統訊息區顯示「某人更名為XXX」
+  addSystem(`${d.oldUsername} 更名為 ${d.newUsername}`)
 );
